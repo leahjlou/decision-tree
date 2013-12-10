@@ -23,14 +23,14 @@ class Node:
         for branch in self.branches:
             branch.printTreeRecurse(level)
 
-    def predictOutcome(self, cases):
-        outcomes = []
+    def predictOutcome(self, cases, a):
+        predictions = []
         for c in cases:
-            outcome = self.predictOutcomeRecurse(c)
-            outcomes.append(outcome)
-        return outcomes
+            outcome = self.predictOutcomeRecurse(c, attributes)
+            predictions.append(outcome)
+        return predictions
 
-    def predictOutcomeRecurse(self, case):
+    def predictOutcomeRecurse(self, case, a):
         if self.name == '':
 
             # Leaf nodes
@@ -39,14 +39,16 @@ class Node:
             elif self.label == '-':
                 return 'No'
 
-        if self.decisionValue in case:
-            return self.branches[0].predictOutcomeRecurse(case)
+        index = a.index(self.decisionAttr)
+
+        if self.decisionValue == case[index]:
+            return self.branches[0].predictOutcomeRecurse(case, a)
 
         if self.decisionGain:
             # Traverse to the branch where branch.decisionValue is in the case
             for b in self.branches:
-                if b.decisionValue in case:
-                    return b.predictOutcomeRecurse(case)
+                if b.decisionValue == case[index]:
+                    return b.predictOutcomeRecurse(case, a)
 
 
 # Returns the root node of the constructed decision tree
@@ -259,11 +261,20 @@ def parseTestCases(filepath):
     return cases
 
 
+def getAttributesFromFile(filepath):
+    f = open(filepath, 'r')
+    attrLine = f.readline()
+    return [a.strip() for a in attrLine.split(',')]
+
+
 trainingPath = raw_input('Please enter the path to a file containing training data:\n')
 tree = constructTreeFromFile(trainingPath)
 tree.printTree()
 
+attributes = getAttributesFromFile(trainingPath)
+attributes.pop(-1)
+
 testingPath = raw_input('Please enter the path to a file containing cases to be tested:\n')
 testCases = parseTestCases(testingPath)
-outcomes = tree.predictOutcome(testCases)
+outcomes = tree.predictOutcome(testCases, attributes)
 print outcomes
