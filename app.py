@@ -6,6 +6,7 @@ class Node:
         self.label = None
         self.decisionAttr = None
         self.decisionGain = None
+        self.decisionValue = None
         self.branches = []
 
     def printTree(self):
@@ -13,18 +14,39 @@ class Node:
 
     def printTreeRecurse(self, level):
         print '\t' * level + self.name,
-
         if self.decisionAttr and self.decisionGain:
             print 'split by ' + str(self.decisionAttr) + ' for a gain of ' + str(self.decisionGain),
-
         if self.label:
             print ' ' + self.label,
-
         print '\n',
-
         level += 1
         for branch in self.branches:
             branch.printTreeRecurse(level)
+
+    def predictOutcome(self, cases):
+        outcomes = []
+        for c in cases:
+            outcome = self.predictOutcomeRecurse(c)
+            outcomes.append(outcome)
+        return outcomes
+
+    def predictOutcomeRecurse(self, case):
+        if self.name == '':
+
+            # Leaf nodes
+            if self.label == '+':
+                return 'Yes'
+            elif self.label == '-':
+                return 'No'
+
+        if self.decisionValue in case:
+            return self.branches[0].predictOutcomeRecurse(case)
+
+        if self.decisionGain:
+            # Traverse to the branch where branch.decisionValue is in the case
+            for b in self.branches:
+                if b.decisionValue in case:
+                    return b.predictOutcomeRecurse(case)
 
 
 # Returns the root node of the constructed decision tree
@@ -60,6 +82,8 @@ def constructDecisionTree(examples, targetAttribute, attributes):
 
         for value in possibleValues:
             newBranch = Node(attr + ' = ' + value)
+            newBranch.decisionAttr = attr
+            newBranch.decisionValue = value
             root.branches.append(newBranch)
             branchExamples = sorted(row for row in examples if row[attrIndex] == value)
 
@@ -78,6 +102,7 @@ def constructDecisionTree(examples, targetAttribute, attributes):
                 newBranch.branches.append(constructDecisionTree(newExamples, targetAttribute, [a for a in attributes if not a == attr]))
 
     return root
+
 
 # Determines whether a word is positive ('yes', 'true', etc.)
 def isPositive(word):
@@ -161,6 +186,7 @@ def computeExpectedInfo(count1, count2):
     prob1 = count1/total
     prob2 = count2/total
 
+    # Can't call log(0)
     if prob1 > 0.0 and prob2 > 0.0:
         return -prob1 * math.log(prob1, 2.0) - prob2 * math.log(prob2, 2.0)
     elif prob1 > 0.0:
@@ -168,7 +194,7 @@ def computeExpectedInfo(count1, count2):
     elif prob2 > 0.0:
         return -prob2 * math.log(prob2, 2.0)
     else:
-        print 'YOU SHOULD PROBABLY NEVER SEE THIS.'
+        print 'There was an error computing expected info.'
         return 0
 
 
@@ -222,6 +248,22 @@ def constructTreeFromFile(filepath):
     return constructDecisionTree(examples, attributes[-1], attributes)
 
 
-path = raw_input('Please enter the path to a file containing training data:\n')
-tree = constructTreeFromFile(path)
+# Returns a list of test cases for the decision tree (examples that don't have
+def parseTestCases(filepath):
+    f = open(filepath, 'r')
+    cases = []
+    for line in f:
+        case = [item.strip() for item in line.split(',')]
+        cases.append(case)
+
+    return cases
+
+
+trainingPath = raw_input('Please enter the path to a file containing training data:\n')
+tree = constructTreeFromFile(trainingPath)
 tree.printTree()
+
+testingPath = raw_input('Please enter the path to a file containing cases to be tested:\n')
+testCases = parseTestCases(testingPath)
+outcomes = tree.predictOutcome(testCases)
+print outcomes
