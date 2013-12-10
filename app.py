@@ -38,6 +38,9 @@ def constructDecisionTree(examples, targetAttribute, attributes):
             if not branchExamples:
                 leaf = Node(getMostCommonValue(targetAttribute, examples, possibleValues))
                 newBranch.branches.append(leaf)
+            else:
+                attributes.remove(attr)
+                newBranch.branches.append(constructDecisionTree(branchExamples, targetAttribute, attributes))
 
 
 # Returns the most common label (+ or -) in the given list of nodes
